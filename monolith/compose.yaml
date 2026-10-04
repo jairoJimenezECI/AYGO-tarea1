@@ -1,0 +1,26 @@
+# Monolito + MongoDB en contenedores separados (EC2 #2).
+services:
+  monolith:
+    build: .
+    image: ${DOCKERHUB_USER:-local}/arrivals-monolith:1.0
+    container_name: arrivals-monolith
+    restart: unless-stopped
+    environment:
+      MONGO_URI: mongodb://db:27017/arrivals
+    ports:
+      - "8081:8000"
+    depends_on:
+      - db
+
+  db:
+    image: mongo:8
+    container_name: arrivals-db
+    restart: unless-stopped
+    # Sin "ports": Mongo solo es accesible desde la red interna de Docker, no desde Internet.
+    volumes:
+      - mongodb:/data/db
+      - mongodb_config:/data/configdb
+
+volumes:
+  mongodb:
+  mongodb_config:

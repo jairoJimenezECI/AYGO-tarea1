@@ -1,0 +1,15 @@
+# Entorno local completo (gateway + monolito + MongoDB) para probar antes de desplegar en AWS.
+include:
+  - monolith/compose.yaml
+
+services:
+  gateway:
+    build: ./gateway
+    image: ${DOCKERHUB_USER:-local}/arrivals-gateway:1.0
+    container_name: arrivals-gateway
+    environment:
+      MONOLITH_URL: http://monolith:8000
+    ports:
+      - "8080:8000"
+    depends_on:
+      - monolith

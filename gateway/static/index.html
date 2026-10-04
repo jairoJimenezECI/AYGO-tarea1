@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de llegadas</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 520px; margin: 40px auto; padding: 0 16px; }
+    form { display: flex; gap: 8px; }
+    input { flex: 1; padding: 8px; }
+    button { padding: 8px 16px; cursor: pointer; }
+    #message { min-height: 1.5em; }
+    .error { color: #b00020; }
+    ul { padding-left: 20px; }
+    li span { color: #666; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Lista de llegadas</h1>
+
+  <form id="arrival-form">
+    <input id="name" name="name" placeholder="Tu nombre" maxlength="100" required>
+    <button type="submit">Registrar</button>
+  </form>
+  <p id="message"></p>
+
+  <h2>Llegadas registradas <button id="refresh" type="button">Actualizar</button></h2>
+  <ul id="arrivals"></ul>
+
+  <script>
+    const form = document.getElementById("arrival-form");
+    const nameInput = document.getElementById("name");
+    const message = document.getElementById("message");
+    const list = document.getElementById("arrivals");
+
+    function showMessage(text, isError = false) {
+      message.textContent = text;
+      message.className = isError ? "error" : "";
+    }
+
+    async function loadArrivals() {
+      try {
+        const response = await fetch("/api/arrivals");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const arrivals = await response.json();
+        list.replaceChildren(...arrivals.map((a) => {
+          const li = document.createElement("li");
+          // textContent evita inyectar HTML con el nombre del usuario.
+          li.textContent = `${a.name} `;
+          const time = document.createElement("span");
+          time.textContent = new Date(a.timestamp).toLocaleString();
+          li.appendChild(time);
+          return li;
+        }));
+      } catch (err) {
+        showMessage(`No se pudo cargar la lista: ${err.message}`, true);
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault(); // AJAX: sin recargar la página
+      try {
+        const response = await fetch("/api/arrivals", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: nameInput.value }),
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const arrival = await response.json();
+        showMessage(`¡Bienvenido, ${arrival.name}!`);
+        form.reset();
+        await loadArrivals();
+      } catch (err) {
+        showMessage(`No se pudo registrar: ${err.message}`, true);
+      }
+    });
+
+    document.getElementById("refresh").addEventListener("click", loadArrivals);
+    loadArrivals();
+  </script>
+</body>
+</html>
